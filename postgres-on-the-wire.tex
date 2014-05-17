@@ -1,0 +1,39 @@
+\documentclass{beamer}
+
+\usepackage[utf8]{inputenc}
+
+\usetheme{CambridgeUS}
+\usecolortheme{rose}
+
+\useoutertheme{infolines}
+\setbeamertemplate{blocks}[default]
+\setbeamertemplate{items}[triangle]
+\setbeamertemplate{enumerate items}[square]
+\setbeamertemplate{sections/subsections in toc}[square]
+
+\AtBeginSubsection[]
+{
+  \begin{frame}{Outline}
+    \tableofcontents[sectionstyle=show/shaded,subsectionstyle=show/shaded/hide]
+  \end{frame}
+}
+
+\title{Postgres on the wire}
+\subtitle{A look at the PostgreSQL wire protocol}
+\author[Jan Urbański]{Jan Urbański \\ \texttt{j.urbanski@wulczer.org}}
+\institute{Ducksboard}
+\date[PGCon 2014]{PGCon 2014, Ottawa, May 23}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\subsection*{Questions}
+
+\begin{frame}
+\begin{beamercolorbox}[center]{note}
+  \Huge Questions?
+\end{beamercolorbox}
+\end{frame}
+
+\end{document}
