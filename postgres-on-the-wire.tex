@@ -28,6 +28,631 @@
 
 \frame{\titlepage}
 
+\begin{frame}
+  \tableofcontents
+\end{frame}
+
+\section{Protocol basics}
+\subsection{Frame format}
+
+\begin{frame}
+  \frametitle{Protocol versions}
+
+  \begin{itemize}
+  \item the 2.0 protocol got introduced in 6.4, around 1999
+    \begin{itemize}
+    \item protocol versioning got added in the previous release
+    \end{itemize}
+  \item the 3.0 got introduced in 7.4, in 2003
+  \item the server still supports protocol 1.0!
+  \item 3.0 introduces some new features
+    \begin{itemize}
+    \item extended query protocol
+    \item COPY improvements
+    \item notifying about parameter changes
+    \item all messages include their length
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Handling incoming connections}
+
+  Connections are received by the postmaster process, which immediately forks a
+  new process to deal with them.
+
+  \begin{itemize}
+  \item any protocol bugs won't afect the postmaster
+  \item authentication is done after a process is forked
+  \item closing the connection results in terminating the backend
+    \begin{itemize}
+    \item but the backend needs to notice that first
+    \item this might mean that killing the client won't terminate the running
+      query
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{FEBE frame format}
+
+  Virtually all messages start with an ASCII identifier, followed by length and
+  payload.
+
+  % regular packet drawing
+
+  The exception is the startup packet, which starts with the length followed by
+  the protocol version.
+
+  % startup packet drawing
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Startup packet}
+
+  % startup packet drawing
+
+  \begin{itemize}
+  \item the very first bit of data received by the backend is parsed as the
+    startup packet
+  \item starts with a 32 bit protocol version field
+  \item in protocol 2.0 it had a fixed length, in 3.0 it's variable length
+  \item what follows is a list of key/value pairs denoting options
+    \begin{itemize}
+    \item the \texttt{username} key is mandatory
+    \item some keys, like \texttt{database} or \texttt{options} are special
+    \item the rest are generic GUC options
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Regular data packet}
+
+  % regular packet drawing
+
+  \begin{itemize}
+  \item starts with an ASCII identifier
+  \item a 32 bit message length follows
+    \begin{itemize}
+    \item this means you can't send a query that's larger than 1 GB
+    \end{itemize}
+  \item interpretation of the payload depends on the identifier
+  \end{itemize}
+\end{frame}
+
+\subsection{Message flow}
+
+\begin{frame}
+  \frametitle{Message types}
+
+  Some of the most common message are:
+
+  \begin{itemize}
+  \item AuthenticationRequest, AuthenticationOK
+  \item Query
+  \item Parse, Bind, Describe, Execute, Sync
+  \item RowDescription, DataRow
+  \item CommandComplete, ReadyForQuery
+  \item ErrorResponse, NoticeResponse
+  \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Basic message flow}
+
+  % state machine, startup packet, auth request, query<->readyforquery cycle
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Authentication}
+
+  \begin{itemize}
+  \item if a connection requires authentication, the backend will send a
+    AuthenticationRequest
+  \item there are several authentication types that can be demanded
+    \begin{itemize}
+    \item plain-text or MD5 password
+    \item it's up to the server to require plain text or encrypted
+    \item GSSAPI, SSPI
+    \end{itemize}
+  \item if the server can immediately confirm permissions, it sends
+    AuthenticationOK
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Encrypted password exchange}
+
+  The AuthenticationRequest message includes a 4 byte salt.
+
+  \begin{block}{Hashing the user password}
+    hash = 'md5' + md5(md5(password + username).hexdigest() + salt).hexdigext()
+  \end{block}
+
+  \begin{itemize}
+  \item using a salt prevents replay attacks
+  \item double-hashing allows the server to only store hashes
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Parameter status}
+
+  \begin{itemize}
+  \item the server notifies clients about important parameters
+  \item first batch of ParameterStatus messages is sent on startup
+    \begin{itemize}
+    \item some of them are informative, like \texttt{server\_version}
+    \item others are critical for security, like \texttt{client\_encoding}
+    \item others yet are important for the client, like \texttt{DateStyle}
+    \end{itemize}
+  \item when any of those parameters gets set, the server notifies the client
+    on the next occasion
+  \end{itemize}
+
+  % parameter status drawing
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Encryption}
+
+  \begin{itemize}
+  \item the startup packet can use a dummy protocol version to ask for SSL
+    support
+  \item the server responds with with a status byte or an error message
+  \item the client can reconnect or abort if the response is negative
+  \end{itemize}
+
+  % SSL negotiation packet drawing
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{SSL message flow}
+
+  % state machine with SSL negotation added
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Cancel key}
+
+  \begin{itemize}
+  \item cancelling queries requires opening a separate connection
+  \item another dummy protocol version is sent to ask for cancellation
+  \item the cancellation message includes the process ID and a 32 bit key
+    \begin{itemize}
+    \item theoretically open to replay attacks, but can be sent over SSL...
+    \item ... although libpq does not, so most applications will transmit it in
+      the open
+    \end{itemize}
+  \end{itemize}
+
+  % cancellation packet drawing
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Handling errors}
+  \begin{itemize}
+  \item the ErrorResponse message is sent for all kinds of errors
+    \begin{itemize}
+    \item it's used both for authentication errors and client errors
+    \end{itemize}
+  \item the message has variable length and is a list of key-value fields
+    \begin{itemize}
+    \item in protocol version 2.0 the error message was just a string
+    \item it's much more flexible now, providing structured information
+    \item example error fields are: message, detail, hint and error position
+    \item detailed down to the source file and line, great for fingerprinting
+    \end{itemize}
+  \end{itemize}
+
+  % error message drawing
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Tools}
+
+  \begin{itemize}
+    \item standard tools like tcpdump or tshark work
+    \item Wireshark has built-in support for deparsing the protocol
+      \begin{itemize}
+      \item but only for protocol 3.0
+      \end{itemize}
+    \item pgShark is a very nice tool that works with the Postgres protocol
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{pgShark examples}
+
+  \begin{block}{generate a report from a pcap file}
+    \begin{semiverbatim}
+    \$ pgs-badger < dump.pcap
+    \end{semiverbatim}
+  \end{block}
+
+  \begin{block}{display live protocol info}
+    \begin{semiverbatim}
+    \$ pgs-debug --interface eth0
+    \end{semiverbatim}
+  \end{block}
+
+  \begin{block}{dump SQL from a 2.0 protocol connection on a nonstandard port}
+    \begin{semiverbatim}
+    \$ pgs-sql -2 --port 5433
+    \end{semiverbatim}
+  \end{block}
+\end{frame}
+
+\section{Sending queries}
+\subsection{Simple protocol}
+
+\begin{frame}
+  \frametitle{Binary vs text data}
+
+  \begin{itemize}
+  \item every type has a text and binary representation
+  \item integers are sent in network byte order
+  \item depending on compile-time options, timestamps are either 64 bit
+    integers or floating point values
+    \begin{itemize}
+    \item this is why \texttt{integer\_datetimes} is sent in ParameterStatus
+    \end{itemize}
+  \item when executing a query, the client can choose if it wants text or
+    binary formatted data
+  \item the exact format for each type doesn't seem to be documented anywhere
+    \begin{itemize}
+    \item but that's what C code is for :)
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Simple query protocol}
+
+  \begin{itemize}
+  \item just sends the SQL command as-is
+  \item server replies with a RowDescription message detailing the number of
+    tuples returned and their structure
+    \begin{itemize}
+    \item each column has a name
+    \item for all columns, the type OID is provided, along with the type's
+      length and modifier, like char(16)
+    \item each column is marked containing binary or text output
+    \end{itemize}
+  \item after that a DataRow message is sent for every row
+  \item finally, the server sends CommandComplete and ReadyForQuery
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Detecting transaction status}
+
+  \begin{itemize}
+  \item the ReadyForQuery message includes transaction status
+  \item this is useful for things like psql's prompt or, more importantly,
+    pgbouncer
+  \item the transaction status only got included in protocol 3.0
+    \begin{itemize}
+    \item for 2.0 libpq does string comparison to try and track the status
+    \end{itemize}
+  \end{itemize}
+
+  \begin{block}<2->{fe-protocol2.c}
+    \begin{semiverbatim}
+    By watching for messages (...), we can do a passable
+    job of tracking the xact status.  BUT: this does not
+    work at all on 7.3 servers with AUTOCOMMIT OFF.
+    (Man, was that feature ever a mistake.)  Caveat user.
+    \end{semiverbatim}
+  \end{block}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Simple query protocol cont.}
+
+  \begin{itemize}
+  \item several commands can be sent in one query string
+    \begin{itemize}
+    \item the server sends one CommandComplete per query
+    \item in case of errors it's up to the client to figure out which of the
+      queries failed
+    \end{itemize}
+  \item sending an empty string yields a special EmptyQueryResponse instead of
+    CommandComplete
+  \item the simple protocol always returns text data, except for binary cursors
+    (DECLARE cur BINARY FOR ...)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Simple query protocol flow}
+
+  % diagram of simple query protocol flow
+\end{frame}
+
+\subsection{Extended protocol}
+\begin{frame}
+  \frametitle{Extended query protocol}
+  \setbeamercolor{sqlinjection}{bg=block title.bg}
+
+  \begin{itemize}
+  \item query execution is split into separate steps
+  \item each step is confirmed by a separately server message, but they can be
+    sent consecutively without waiting
+  \item allows separating parameters from the query body
+  \end{itemize}
+  \uncover<2->{
+    \begin{beamercolorbox}[center,sep=1em]{sqlinjection}
+      \only<-3>{
+        \texttt{SELECT * FROM users WHERE username = 'x\alert{' or 1=1 --}'}
+      }
+      \only<4->{
+        \texttt{SELECT * FROM users WHERE username = \alert{\$1}}
+      }
+    \end{beamercolorbox}
+  }
+  \begin{itemize}
+  \item disallows sending several commands in one query
+  \end{itemize}
+  \uncover<3->{
+    \begin{beamercolorbox}[center,sep=1em]{sqlinjection}
+      \only<-3>{
+        \texttt{SELECT * FROM users WHERE username = 'x\alert{'; drop table invoices;--}'}
+      }
+      \only<4->{
+        \texttt{SELECT * FROM users WHERE username = \alert{\$1}}
+    }
+    \end{beamercolorbox}
+  }
+\end{frame}
+
+\begin{frame}
+  \frametitle{Parse messages}
+
+  \begin{itemize}
+  \item first, the client sends a Parse message with the query string
+  \item it can contain placeholders (\texttt{\$1, \$2, ...}) for parameters
+  \item for each parameter you can specify its type
+    \begin{itemize}
+    \item useful to disambiguate between \texttt{select foo(1)} and
+      \texttt{select foo('x')}
+    \end{itemize}
+  \item the statement can be optionally given a name
+    \begin{itemize}
+    \item unnamed statements live until the next unnamed statement is parsed
+    \item named statements need to be explicitly deallocated
+    \end{itemize}
+  \end{itemize}
+
+  % parse message drawing
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Bind messages}
+
+  \begin{itemize}
+  \item after the query is parsed, the clients binds its parameters
+  \item the statement name from Parse and an output portal name are given
+    \begin{itemize}
+    \item en empty string can be used for the portal name
+    \end{itemize}
+  \item for each parameter, its format (binary or text) and value are specified
+  \item finally, for each output column, the requested output format is sent
+  \end{itemize}
+
+  % bind message drawing
+\end{frame}
+
+\begin{frame}
+  \frametitle{Interlude - Describe messages}
+
+  \begin{itemize}
+  \item clients can ask for a description of a statement or a portal
+  \item statement descriptions are returned as two separate messages:
+    ParameterDescription and RowDescription
+  \item portal descriptions are just RowDescriptions
+    \begin{itemize}
+    \item statements that don't return data use a special NoData message
+    \end{itemize}
+  \item clients can use Describe to make sure they know how to handle data
+    being returned
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Describe flow}
+
+  % describe message drawing and its responses
+\end{frame}
+
+\begin{frame}
+  \frametitle{Execute messages}
+
+  \begin{itemize}
+  \item once the output portal is created, an Execute can be sent
+  \item the output portal is referred to by name
+  \item the number of rows to return, or 0 for all rows
+  \item a series of DataRow messages follow
+    \begin{itemize}
+    \item no RowDescription is sent
+    \item after the portal has been run to completion, CommandComplete is sent,
+      but not ReadyForQuery
+    \item if the requested number of rows is less than what the portal would
+      return a PortalSuspended message is sent
+    \item AFAIK, only JDBC actually exposes limits for Execute
+    \item libpq doesn't even have code to handle PortalSuspended...
+    \end{itemize}
+  \end{itemize}
+
+  % execute message drawing
+\end{frame}
+
+\begin{frame}
+  \frametitle{Sync messages}
+
+  \begin{itemize}
+  \item every extended protocol query has to end with a Sync
+  \item upon receiving Sync the server responds with a ReadyForQuery message
+  \item in case of errors, the server sends an ErrorResponse and then skips
+    until it sees a Sync
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Extended query protocol summary}
+
+  \begin{itemize}
+  \item queries are parsed at Parse stage
+  \item queries are planned at Bind stage
+  \item queries are executed at Execute stage
+  \item with statement logging, these three steps will be logged separately
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Extended query protocol flow}
+
+  % diagram of extended query protocol flow
+\end{frame}
+
+\section{Other features}
+\subsection{The COPY subprotocol}
+
+\begin{frame}
+  \frametitle{Entering COPY mode}
+
+  \begin{itemize}
+  \item sending \texttt{COPY FROM STDIN} or \texttt{COPY TO STDIN} puts the
+    connection in COPY mode
+  \item this can happen both during simple and extended query processing
+  \item CopyInResponse and CopyOutResponse indicate that the backend has
+    switched to COPY mode
+  \item they specify the overall format (text or binary) and the format for
+    each column
+    \begin{itemize}
+    \item currently if the overall format is binary, all columns are binary
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Sending COPY data}
+
+  \begin{itemize}
+  \item CopyData messages are simply binary blobs
+  \item to stop \texttt{COPY FROM}, the client can send a CopyFail message
+  \item when transfer is complete, the client sends CopyDone
+  \item in case of backend errors, an ErrorResponse is sent
+  \item there is no way for the frontend to stop a \texttt{COPY TO} operation,
+    short of cancelling
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{COPY subprotocol flow}
+
+  % diagram of COPY subprotocol flow
+\end{frame}
+
+\subsection{Less known FEBE features}
+\begin{frame}
+  \frametitle{Asynchronous operation}
+
+  \begin{itemize}
+  \item some messages can appear at any moment during the connection
+    \begin{itemize}
+    \item ParameterStatus
+    \item NoticeResponse
+    \item NotificationResponse
+    \end{itemize}
+  \item NOTIFY messages are only sent when a transaction is committed, but have
+    to expect then at any time
+  \item notices can be sent at any moment
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Fast-path interface}
+
+  \begin{itemize}
+  \item a specialised interface for calling functions
+  \item separate protocol message, FunctionCall, similar to Query
+    \begin{itemize}
+    \item the function is identified by its OID
+    \item arguments format and values are specified similar to Bind
+    \end{itemize}
+  \item libpq documentation calls it ``somewhat obsolete'' :)
+  \item similar effect can be achieved by creating a named statement with Parse
+    and using Bind/Execute
+  \item still used by libpq for large object functions
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Fast-path interface}
+
+  \begin{itemize}
+  \item a specialised interface for calling functions
+  \item separate protocol message, FunctionCall, similar to Query
+    \begin{itemize}
+    \item the function is identified by its OID
+    \item arguments format and values are specified similar to Bind
+    \end{itemize}
+  \item libpq documentation calls it ``somewhat obsolete'' :)
+  \item similar effect can be achieved by creating a named statement with Parse
+    and using Bind/Execute
+  \item still used by libpq for large object functions
+  \end{itemize}
+
+  % fastpath message drawing
+\end{frame}
+
+\begin{frame}
+  \frametitle{Replication subprotocol}
+
+  \begin{itemize}
+  \item entered using a special \texttt{replication} parameter in the startup
+    packet
+  \item switches the server to a mode where only the simple query protocol can
+    be used
+  \item instead of SQL, the server accepts replication commands
+    \begin{itemize}
+    \item for example, \texttt{START\_REPLICATION} or \texttt{BASE\_BACKUP}
+    \end{itemize}
+  \item responses are a mix of RowDescription/DataRow and COPY subprotocol data
+  \end{itemize}
+\end{frame}
+
+\subsection{Future development}
+\begin{frame}
+  \frametitle{Protocol version 4.0}
+
+  There are surprisingly few gripes about protocol 3.0, but some proposals have
+  been floated on the development list.
+
+  \begin{itemize}
+  \item protocol compression
+  \item adding nullable indicator to RowDescription
+  \item multi-stage authentication, allowing falling back to a different
+    authentication method
+  \item negotiating the protocol instead of the server just rejecting older
+    clients
+  \item in-band query cancellation
+  \item sending per-statement GUC
+  \end{itemize}
+\end{frame}
+
 \subsection*{Questions}
 
 \begin{frame}
