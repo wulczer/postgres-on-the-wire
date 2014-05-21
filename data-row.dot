@@ -1,0 +1,7 @@
+graph DataRow {
+      label=DataRow;
+      labelloc=t;
+      labeljust=l;
+      node [shape=record];
+      struct1 [label="'D'|int32 len|int16 numfields|int32 fieldlen|char[fieldlen] data|..."];
+}

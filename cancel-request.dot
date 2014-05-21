@@ -1,0 +1,7 @@
+graph CancelRequest {
+      label="Cancel request";
+      labelloc=t;
+      labeljust=l;
+      node [shape=record];
+      struct1 [label="int32 len|int32 cancelcode|int32 pid|int32 secret"];
+}

@@ -1,0 +1,4 @@
+graph RowDescriptionBottom {
+      node [shape=record];
+      struct1 [label="str col|int32 tableoid|int16 colno|int32 typeoid|int16 typelen|int32 typmod|int16 format"];
+}

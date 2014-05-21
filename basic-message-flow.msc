@@ -1,0 +1,21 @@
+msc {
+    arcgradient=10;
+
+    a [label="Client"], b [label="Server"];
+
+    a=>>b [label="startup packet\n\n"];
+
+    a<<=b [label="auth request | auth OK\n\n"];
+
+    a=>>b [label="(optional) PasswordMessage\n\n"];
+
+    |||;
+
+    b=>>a [label="ParameterStatus\n\n"];
+    b=>>a [label="ParameterStatus\n\n"];
+    b=>>a [label="ParameterStatus\n\n"];
+
+    b=>>a [label="BackendKeyData\n\n"];
+
+    b=>>a [label="ReadyForQuery\n\n"];
+}

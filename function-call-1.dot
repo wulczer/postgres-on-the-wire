@@ -1,0 +1,7 @@
+graph FunctionCall1 {
+      label=FunctionCall;
+      labelloc=t;
+      labeljust=l;
+      node [shape=record];
+      struct1 [label="'F'|int32 len|int32 funoid"];
+}

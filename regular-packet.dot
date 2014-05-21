@@ -1,0 +1,7 @@
+graph regular {
+      label="Regular packet";
+      labelloc=t;
+      labeljust=l;
+      node [shape=record];
+      struct1 [label="char tag|int32 len|payload"];
+}

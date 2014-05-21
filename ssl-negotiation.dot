@@ -1,0 +1,7 @@
+graph SSLNegotiation {
+      label="SSL negotiation";
+      labelloc=t;
+      labeljust=l;
+      node [shape=record];
+      struct1 [label="int32 len|int32 sslcode"];
+}

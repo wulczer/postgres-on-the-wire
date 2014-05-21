@@ -1,0 +1,4 @@
+graph FunctionCall3 {
+      node [shape=record];
+      struct1 [label="int16 numparams|int32 paramlen|char[paramlen] param|...|int16 resultformat"];
+}

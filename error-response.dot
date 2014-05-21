@@ -1,0 +1,7 @@
+graph ErrorResponse {
+      label="ErrorResponse";
+      labelloc=t;
+      labeljust=l;
+      node [shape=record];
+      struct1 [label="'E'|int32 len|char code|str value|\\0|char code|str value|\\0|...|\\0"];
+}

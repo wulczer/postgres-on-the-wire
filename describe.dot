@@ -1,0 +1,7 @@
+graph Describe {
+      label=Describe;
+      labelloc=t;
+      labeljust=l;
+      node [shape=record];
+      struct1 [label="'D'|int32 len|'S' or 'P'|str name"];
+}

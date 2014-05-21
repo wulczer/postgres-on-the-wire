@@ -1,0 +1,5 @@
+graph RowDescription {
+      node [shape=record];
+      struct1 [label="'T'|int32 len|int16 numfields"];
+      struct2 [label="str fieldname|int32 tableoid|int16 colno|int32 typeoid|int16 typelen|int32 typmod|int16 format|..."];
+}

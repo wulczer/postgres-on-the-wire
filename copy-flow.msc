@@ -1,0 +1,21 @@
+msc {
+    arcgradient=10;
+
+    a [label="Client"], b [label="Server"];
+
+    a=>>b [label="Query - 'COPY tab FROM STDIN'\n\n"];
+
+    a<<=b [label="CopyIn\n\n"];
+
+    |||;
+
+    a=>>b [label="CopyData\n\n"];
+    a=>>b [label="CopyData\n\n"];
+    a=>>b [label="CopyData\n\n"];
+    a=>>b [label="CopyComplete\n\n"];
+
+    |||;
+
+    b=>>a [label="CommandComplete\n\n"];
+    b=>>a [label="ReadyForQuery\n\n"];
+}

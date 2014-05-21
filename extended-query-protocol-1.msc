@@ -1,0 +1,11 @@
+msc {
+    arcgradient=10;
+
+    a [label="Client"], b [label="Server"];
+
+    a=>>b [label="Parse\n\n"];
+    a=>>b [label="Bind\n\n"];
+    a=>>b [label="Describe\n\n"];
+    a=>>b [label="Execute\n\n"];
+    a=>>b [label="Sync\n\n"];
+}

@@ -1,0 +1,16 @@
+msc {
+    arcgradient=10;
+
+    a [label="Client"], b [label="Server"];
+
+    a=>>b [label="Query\n\n"];
+
+    |||;
+
+    a<<=b [label="RowDescription\n\n"];
+    a<<=b [label="DataRow\n\n"];
+    a<<=b [label="DataRow\n\n"];
+    a<<=b [label="DataRow\n\n"];
+    a<<=b [label="CommandComplete\n\n"];
+    a<<=b [label="ReadyForQuery\n\n"];
+}

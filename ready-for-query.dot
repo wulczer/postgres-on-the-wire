@@ -1,0 +1,7 @@
+graph ReqdyForQuery {
+      label=ReadyForQuery;
+      labelloc=t;
+      labeljust=l;
+      node [shape=record];
+      struct1 [label="'Z'|int32 len|'I' or 'T' or 'E'"];
+}

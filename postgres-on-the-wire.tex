@@ -11,6 +11,12 @@
 \setbeamertemplate{enumerate items}[square]
 \setbeamertemplate{sections/subsections in toc}[square]
 
+\newcommand{\mscdiagram}[2][1]{
+  \begin{center}
+    \includegraphics[height=0.7\paperheight,width=#1\paperwidth,keepaspectratio]{#2}
+  \end{center}
+}
+
 \AtBeginSubsection[]
 {
   \begin{frame}{Outline}
@@ -79,19 +85,25 @@
   Virtually all messages start with an ASCII identifier, followed by length and
   payload.
 
-  % regular packet drawing
+  \begin{center}
+    \includegraphics[height=1.2cm]{regular-packet}
+  \end{center}
 
   The exception is the startup packet, which starts with the length followed by
   the protocol version.
 
-  % startup packet drawing
+  \begin{center}
+    \includegraphics[height=1.2cm]{startup-packet}
+  \end{center}
 
 \end{frame}
 
 \begin{frame}
   \frametitle{Startup packet}
 
-  % startup packet drawing
+  \begin{center}
+    \includegraphics[height=1cm]{startup-packet-detail}
+  \end{center}
 
   \begin{itemize}
   \item the very first bit of data received by the backend is parsed as the
@@ -100,7 +112,6 @@
   \item in protocol 2.0 it had a fixed length, in 3.0 it's variable length
   \item what follows is a list of key/value pairs denoting options
     \begin{itemize}
-    \item the \texttt{username} key is mandatory
     \item some keys, like \texttt{database} or \texttt{options} are special
     \item the rest are generic GUC options
     \end{itemize}
@@ -110,7 +121,9 @@
 \begin{frame}
   \frametitle{Regular data packet}
 
-  % regular packet drawing
+  \begin{center}
+    \includegraphics[height=1cm]{regular-packet}
+  \end{center}
 
   \begin{itemize}
   \item starts with an ASCII identifier
@@ -141,14 +154,11 @@
 \end{frame}
 
 \begin{frame}
-  \frametitle{Basic message flow}
-
-  % state machine, startup packet, auth request, query<->readyforquery cycle
-
-\end{frame}
-
-\begin{frame}
   \frametitle{Authentication}
+
+  \begin{center}
+    \includegraphics[height=1cm]{authentication-request}
+  \end{center}
 
   \begin{itemize}
   \item if a connection requires authentication, the backend will send a
@@ -167,11 +177,16 @@
 \begin{frame}
   \frametitle{Encrypted password exchange}
 
-  The AuthenticationRequest message includes a 4 byte salt.
+  \begin{center}
+    \includegraphics[height=1cm]{authentication-request-md5}
+  \end{center}
 
-  \begin{block}{Hashing the user password}
-    hash = 'md5' + md5(md5(password + username).hexdigest() + salt).hexdigext()
-  \end{block}
+  The MD5 AuthenticationRequest message includes a 4 byte salt.
+
+  \begin{align*}
+    pwdhash\;&=\;md5(password\;+\;username).hexdigest() \\
+    hash\;&=\;'md5'\;+\;md5(pwdhash\;+\;salt).hexdigext()
+  \end{align*}
 
   \begin{itemize}
   \item using a salt prevents replay attacks
@@ -181,6 +196,10 @@
 
 \begin{frame}
   \frametitle{Parameter status}
+
+  \begin{center}
+    \includegraphics[height=1cm]{parameter-status}
+  \end{center}
 
   \begin{itemize}
   \item the server notifies clients about important parameters
@@ -193,13 +212,20 @@
   \item when any of those parameters gets set, the server notifies the client
     on the next occasion
   \end{itemize}
+\end{frame}
 
-  % parameter status drawing
+\begin{frame}
+  \frametitle{Basic message flow}
 
+  \mscdiagram{basic-message-flow}
 \end{frame}
 
 \begin{frame}
   \frametitle{Encryption}
+
+  \begin{center}
+    \includegraphics[height=1cm]{ssl-negotiation}
+  \end{center}
 
   \begin{itemize}
   \item the startup packet can use a dummy protocol version to ask for SSL
@@ -208,37 +234,40 @@
   \item the client can reconnect or abort if the response is negative
   \end{itemize}
 
-  % SSL negotiation packet drawing
-
 \end{frame}
 
 \begin{frame}
   \frametitle{SSL message flow}
 
-  % state machine with SSL negotation added
-
+  \mscdiagram{ssl-message-flow}
 \end{frame}
 
 \begin{frame}
-  \frametitle{Cancel key}
+  \frametitle{Cancellation}
+
+  \begin{center}
+    \includegraphics[height=1cm]{cancel-request}
+  \end{center}
 
   \begin{itemize}
+  \item the cancel key is transmitted by the server upon connection
   \item cancelling queries requires opening a separate connection
   \item another dummy protocol version is sent to ask for cancellation
   \item the cancellation message includes the process ID and a 32 bit key
     \begin{itemize}
-    \item theoretically open to replay attacks, but can be sent over SSL...
-    \item ... although libpq does not, so most applications will transmit it in
-      the open
+    \item theoretically open to replay attacks, but can be sent over SSL
+    \item libpq does not, so most applications will transmit it in the open
     \end{itemize}
   \end{itemize}
-
-  % cancellation packet drawing
-
 \end{frame}
 
 \begin{frame}
   \frametitle{Handling errors}
+
+  \begin{center}
+    \includegraphics[height=1cm]{error-response}
+  \end{center}
+
   \begin{itemize}
   \item the ErrorResponse message is sent for all kinds of errors
     \begin{itemize}
@@ -252,9 +281,6 @@
     \item detailed down to the source file and line, great for fingerprinting
     \end{itemize}
   \end{itemize}
-
-  % error message drawing
-
 \end{frame}
 
 \begin{frame}
@@ -319,18 +345,54 @@
   \frametitle{Simple query protocol}
 
   \begin{itemize}
-  \item just sends the SQL command as-is
-  \item server replies with a RowDescription message detailing the number of
-    tuples returned and their structure
+  \item client sends an SQL command
+  \item server replies with a RowDescription message detailing the returned
+    tuples structure
     \begin{itemize}
     \item each column has a name
     \item for all columns, the type OID is provided, along with the type's
       length and modifier, like char(16)
-    \item each column is marked containing binary or text output
+    \item each column is marked as containing binary or text output
     \end{itemize}
   \item after that a DataRow message is sent for every row
   \item finally, the server sends CommandComplete and ReadyForQuery
   \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Simple query frames}
+
+  \begin{center}
+    \includegraphics[height=1cm]{query}
+  \end{center}
+
+  \bigskip
+
+  \hspace{0.4cm}\includegraphics[height=0.9cm]{row-description-top}\;\raisebox{0.2cm}{$+$} \\
+  \hspace{0.4cm}\includegraphics[height=0.6cm]{row-description-bottom} \\
+  \hspace{0.4cm}\dots
+
+  \bigskip
+
+  \begin{center}
+    \includegraphics[height=1cm]{data-row}
+  \end{center}
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Simple query frames cont.}
+
+  \begin{center}
+    \includegraphics[height=1cm]{command-complete}
+  \end{center}
+
+  \bigskip
+
+  \begin{center}
+    \includegraphics[height=1cm]{ready-for-query}
+  \end{center}
+
 \end{frame}
 
 \begin{frame}[fragile]
@@ -369,14 +431,13 @@
   \item sending an empty string yields a special EmptyQueryResponse instead of
     CommandComplete
   \item the simple protocol always returns text data, except for binary cursors
-    (DECLARE cur BINARY FOR ...)
   \end{itemize}
 \end{frame}
 
 \begin{frame}
   \frametitle{Simple query protocol flow}
 
-  % diagram of simple query protocol flow
+  \mscdiagram{simple-query-protocol}
 \end{frame}
 
 \subsection{Extended protocol}
@@ -390,41 +451,48 @@
     sent consecutively without waiting
   \item allows separating parameters from the query body
   \end{itemize}
-  \uncover<2->{
-    \begin{beamercolorbox}[center,sep=1em]{sqlinjection}
-      \only<-3>{
-        \texttt{SELECT * FROM users WHERE username = 'x\alert{' or 1=1 --}'}
-      }
-      \only<4->{
-        \texttt{SELECT * FROM users WHERE username = \alert{\$1}}
-      }
-    \end{beamercolorbox}
-  }
+  \begin{beamercolorbox}[center,sep=1em]{sqlinjection}
+    \only<1>{
+      \texttt{SELECT admin FROM users WHERE login = '\alert{\$var}'}
+    }
+    \only<2-3>{
+      \texttt{SELECT admin FROM users WHERE login = '\alert{x' or 1=1; --}'}
+    }
+    \only<4->{
+      \texttt{SELECT admin FROM users WHERE login = \alert{\$1}}
+    }
+  \end{beamercolorbox}
+
   \begin{itemize}
   \item disallows sending several commands in one query
   \end{itemize}
-  \uncover<3->{
-    \begin{beamercolorbox}[center,sep=1em]{sqlinjection}
-      \only<-3>{
-        \texttt{SELECT * FROM users WHERE username = 'x\alert{'; drop table invoices;--}'}
-      }
-      \only<4->{
-        \texttt{SELECT * FROM users WHERE username = \alert{\$1}}
+
+  \begin{beamercolorbox}[center,sep=1em]{sqlinjection}
+    \only<1-2>{
+      \texttt{SELECT * FROM posts WHERE post\_id = \alert{\$var}}
     }
-    \end{beamercolorbox}
-  }
+    \only<3>{
+      \texttt{SELECT * FROM posts WHERE post\_id = \alert{1; delete from posts; --}'}
+    }
+    \only<4->{
+      \texttt{SELECT * FROM posts WHERE post\_id = \alert{\$1}}
+    }
+  \end{beamercolorbox}
 \end{frame}
 
 \begin{frame}
   \frametitle{Parse messages}
+
+  \begin{center}
+    \includegraphics[height=1cm]{parse}
+  \end{center}
 
   \begin{itemize}
   \item first, the client sends a Parse message with the query string
   \item it can contain placeholders (\texttt{\$1, \$2, ...}) for parameters
   \item for each parameter you can specify its type
     \begin{itemize}
-    \item useful to disambiguate between \texttt{select foo(1)} and
-      \texttt{select foo('x')}
+    \item disambiguate between \texttt{select foo(1)} and \texttt{select foo('x')}
     \end{itemize}
   \item the statement can be optionally given a name
     \begin{itemize}
@@ -432,13 +500,15 @@
     \item named statements need to be explicitly deallocated
     \end{itemize}
   \end{itemize}
-
-  % parse message drawing
-
 \end{frame}
 
 \begin{frame}
   \frametitle{Bind messages}
+
+  \hspace{2cm}\includegraphics[height=0.9cm]{bind-1}\;\raisebox{0.2cm}{$+$} \\
+  \hspace{2cm}\includegraphics[height=0.6cm]{bind-2}\;\raisebox{0.2cm}{$+$} \\
+  \hspace{2cm}\includegraphics[height=0.6cm]{bind-3}\;\raisebox{0.2cm}{$+$} \\
+  \hspace{2cm}\includegraphics[height=0.6cm]{bind-4}
 
   \begin{itemize}
   \item after the query is parsed, the clients binds its parameters
@@ -449,12 +519,19 @@
   \item for each parameter, its format (binary or text) and value are specified
   \item finally, for each output column, the requested output format is sent
   \end{itemize}
-
-  % bind message drawing
 \end{frame}
 
 \begin{frame}
   \frametitle{Interlude - Describe messages}
+
+
+  \begin{center}
+    \includegraphics[height=1cm]{describe} \\
+
+    \bigskip
+
+    \includegraphics[height=1cm]{parameter-description}
+  \end{center}
 
   \begin{itemize}
   \item clients can ask for a description of a statement or a portal
@@ -469,15 +546,12 @@
   \end{itemize}
 \end{frame}
 
-
-\begin{frame}
-  \frametitle{Describe flow}
-
-  % describe message drawing and its responses
-\end{frame}
-
 \begin{frame}
   \frametitle{Execute messages}
+
+  \begin{center}
+    \includegraphics[height=1cm]{execute}
+  \end{center}
 
   \begin{itemize}
   \item once the output portal is created, an Execute can be sent
@@ -494,12 +568,14 @@
     \item libpq doesn't even have code to handle PortalSuspended...
     \end{itemize}
   \end{itemize}
-
-  % execute message drawing
 \end{frame}
 
 \begin{frame}
   \frametitle{Sync messages}
+
+  \begin{center}
+    \includegraphics[height=1cm]{sync}
+  \end{center}
 
   \begin{itemize}
   \item every extended protocol query has to end with a Sync
@@ -523,7 +599,27 @@
 \begin{frame}
   \frametitle{Extended query protocol flow}
 
-  % diagram of extended query protocol flow
+  \begin{columns}[onlytextwidth]
+    \begin{column}{0.5\textwidth}
+      \mscdiagram[0.4]{extended-query-protocol-1}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \mscdiagram[0.4]{extended-query-protocol-2}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Advanced extended protocol usage}
+
+  \begin{columns}[onlytextwidth]
+    \begin{column}{0.5\textwidth}
+      \mscdiagram[0.4]{extended-query-protocol-adv-1}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \mscdiagram[0.4]{extended-query-protocol-adv-2}
+    \end{column}
+  \end{columns}
 \end{frame}
 
 \section{Other features}
@@ -549,6 +645,10 @@
 \begin{frame}
   \frametitle{Sending COPY data}
 
+  \begin{center}
+    \includegraphics[height=1cm]{copy-data}
+  \end{center}
+
   \begin{itemize}
   \item CopyData messages are simply binary blobs
   \item to stop \texttt{COPY FROM}, the client can send a CopyFail message
@@ -562,12 +662,16 @@
 \begin{frame}
   \frametitle{COPY subprotocol flow}
 
-  % diagram of COPY subprotocol flow
+  \mscdiagram{copy-flow}
 \end{frame}
 
 \subsection{Less known FEBE features}
 \begin{frame}
   \frametitle{Asynchronous operation}
+
+  \begin{center}
+    \includegraphics[height=1cm]{notification-response}
+  \end{center}
 
   \begin{itemize}
   \item some messages can appear at any moment during the connection
@@ -585,22 +689,9 @@
 \begin{frame}
   \frametitle{Fast-path interface}
 
-  \begin{itemize}
-  \item a specialised interface for calling functions
-  \item separate protocol message, FunctionCall, similar to Query
-    \begin{itemize}
-    \item the function is identified by its OID
-    \item arguments format and values are specified similar to Bind
-    \end{itemize}
-  \item libpq documentation calls it ``somewhat obsolete'' :)
-  \item similar effect can be achieved by creating a named statement with Parse
-    and using Bind/Execute
-  \item still used by libpq for large object functions
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Fast-path interface}
+  \hspace{1cm}\includegraphics[height=0.9cm]{function-call-1}\;\raisebox{0.2cm}{$+$} \\
+  \hspace{1cm}\includegraphics[height=0.6cm]{function-call-2}\;\raisebox{0.2cm}{$+$} \\
+  \hspace{1cm}\includegraphics[height=0.6cm]{function-call-3}
 
   \begin{itemize}
   \item a specialised interface for calling functions
@@ -614,8 +705,6 @@
     and using Bind/Execute
   \item still used by libpq for large object functions
   \end{itemize}
-
-  % fastpath message drawing
 \end{frame}
 
 \begin{frame}

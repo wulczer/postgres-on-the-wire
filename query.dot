@@ -1,0 +1,7 @@
+graph Query {
+      label=Query;
+      labelloc=t;
+      labeljust=l;
+      node [shape=record];
+      struct1 [label="'Q'|int32 len|str query"];
+}

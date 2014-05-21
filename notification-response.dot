@@ -1,0 +1,7 @@
+graph NotificationResponse {
+      label=NotificationResponse;
+      labelloc=t;
+      labeljust=l;
+      node [shape=record];
+      struct1 [label="'A'|int32 len|int32 pid|str channel|str payload"];
+}

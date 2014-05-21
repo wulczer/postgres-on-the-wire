@@ -1,0 +1,7 @@
+graph Bind {
+      label=Bind;
+      labelloc=t;
+      labeljust=l;
+      node [shape=record];
+      struct1 [label="'B'|int32 len|str portal|str stmt"];
+}

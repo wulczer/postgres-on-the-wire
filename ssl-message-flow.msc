@@ -1,0 +1,16 @@
+msc {
+    arcgradient=10;
+
+    a [label="Client"], b [label="Server"];
+
+    a=>>b [label="ssl negotiation packet\n\n"];
+    a<<=b [label="'S' | 'N' | error\n\n"];
+
+    --- [label="SSL handshake\n\n\n"];
+
+    a=>>b [label="startup packet\n\n"];
+
+    a<<=b [label="auth request | auth OK\n\n"];
+
+    a=>>b [label="(optional) PasswordMessage\n\n"];
+}

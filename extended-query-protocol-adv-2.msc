@@ -1,0 +1,19 @@
+msc {
+    arcgradient=10;
+
+    a [label="Client"], b [label="Server"];
+
+    a=>>b [label="Bind\n\n"];
+    a=>>b [label="Execute\n\n"];
+    a=>>b [label="Bind\n\n"];
+    a=>>b [label="Execute\n\n"];
+    a=>>b [label="Sync\n\n"];
+
+    |||;
+
+    a<<=b [label="BindOK\n\n"];
+    a<<=b [label="CommandComplete\n\n"];
+    a<<=b [label="BindOK\n\n"];
+    a<<=b [label="CommandComplete\n\n"];
+    a<<=b [label="ReadyForQuery\n\n"];
+}

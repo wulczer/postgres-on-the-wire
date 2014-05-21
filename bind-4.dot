@@ -1,0 +1,4 @@
+graph Bind {
+      node [shape=record];
+      struct1 [label="int16 numresults|int16 format|..."];
+}
