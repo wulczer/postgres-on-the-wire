@@ -55,7 +55,6 @@
     \begin{itemize}
     \item extended query protocol
     \item COPY improvements
-    \item notifying about parameter changes
     \item all messages include their length
     \end{itemize}
   \end{itemize}
@@ -73,8 +72,7 @@
   \item closing the connection results in terminating the backend
     \begin{itemize}
     \item but the backend needs to notice that first
-    \item this might mean that killing the client won't terminate the running
-      query
+    \item killing the client might not terminate the running query
     \end{itemize}
   \end{itemize}
 \end{frame}
@@ -136,22 +134,6 @@
 \end{frame}
 
 \subsection{Message flow}
-
-\begin{frame}
-  \frametitle{Message types}
-
-  Some of the most common message are:
-
-  \begin{itemize}
-  \item AuthenticationRequest, AuthenticationOK
-  \item Query
-  \item Parse, Bind, Describe, Execute, Sync
-  \item RowDescription, DataRow
-  \item CommandComplete, ReadyForQuery
-  \item ErrorResponse, NoticeResponse
-  \end{itemize}
-
-\end{frame}
 
 \begin{frame}
   \frametitle{Authentication}
@@ -538,9 +520,6 @@
   \item statement descriptions are returned as two separate messages:
     ParameterDescription and RowDescription
   \item portal descriptions are just RowDescriptions
-    \begin{itemize}
-    \item statements that don't return data use a special NoData message
-    \end{itemize}
   \item clients can use Describe to make sure they know how to handle data
     being returned
   \end{itemize}
@@ -558,15 +537,19 @@
   \item the output portal is referred to by name
   \item the number of rows to return, or 0 for all rows
   \item a series of DataRow messages follow
-    \begin{itemize}
-    \item no RowDescription is sent
-    \item after the portal has been run to completion, CommandComplete is sent,
-      but not ReadyForQuery
-    \item if the requested number of rows is less than what the portal would
-      return a PortalSuspended message is sent
-    \item AFAIK, only JDBC actually exposes limits for Execute
-    \item libpq doesn't even have code to handle PortalSuspended...
-    \end{itemize}
+  \item no RowDescription is sent
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Execute messages cont.}
+
+  \begin{itemize}
+  \item after the portal has been run to completion, CommandComplete is sent,
+  \item if the requested number of rows is less than what the portal would
+    return a PortalSuspended message is sent
+  \item AFAIK, only JDBC actually exposes limits for Execute
+  \item libpq doesn't even have code to handle PortalSuspended...
   \end{itemize}
 \end{frame}
 
