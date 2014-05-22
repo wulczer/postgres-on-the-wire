@@ -17,6 +17,13 @@
   \end{center}
 }
 
+\newcommand{\fullframepicture}[1]{
+  \mode
+  {
+  }
+  \mode{\usebackgroundtemplate{}}
+}
+
 \AtBeginSubsection[]
 {
   \begin{frame}{Outline}
@@ -43,13 +50,19 @@
     \end{semiverbatim}
   \end{block}
 
-  \begin{block}{Getting the entire presentation}
+  \begin{block}{Getting the source}
     \begin{semiverbatim}
-    \$ git clone git://github.com/wulczer/postgres-on-the-wire.git
-    \$ make
+    \$ https://github.com/wulczer/postgres-on-the-wire
     \end{semiverbatim}
   \end{block}
 \end{frame}
+
+\usebackgroundtemplate{
+  \includegraphics[width=\paperwidth,height=\paperheight]{the-wire.jpg}
+}
+\begin{frame}[plain]
+\end{frame}
+\usebackgroundtemplate{}
 
 \begin{frame}
   \tableofcontents
@@ -67,12 +80,12 @@
     \item protocol versioning got added in the previous release
     \end{itemize}
   \item the 3.0 got introduced in 7.4, in 2003
-  \item the server still supports protocol 1.0!
-  \item 3.0 introduces some new features
+  \item the server \alert{still supports} protocol 1.0!
+  \item 3.0 has some new features
     \begin{itemize}
     \item extended query protocol
     \item COPY improvements
-    \item all messages include their length
+    \item overall better frame structure
     \end{itemize}
   \end{itemize}
 \end{frame}
@@ -84,9 +97,9 @@
   new process to deal with them.
 
   \begin{itemize}
-  \item any protocol bugs won't afect the postmaster
-  \item authentication is done after a process is forked
-  \item closing the connection results in terminating the backend
+  \item any \alert{protocol bugs} won't afect the postmaster
+  \item authentication is done \alert{after} a process is forked
+  \item closing the connection results in \alert{terminating} the backend
     \begin{itemize}
     \item but the backend needs to notice that first
     \item killing the client might not terminate the running query
@@ -123,7 +136,7 @@
   \begin{itemize}
   \item the very first bit of data received by the backend is parsed as the
     startup packet
-  \item starts with a 32 bit protocol version field
+  \item starts with a 32 bit \alert{protocol version} field
   \item in protocol 2.0 it had a fixed length, in 3.0 it's variable length
   \item what follows is a list of key/value pairs denoting options
     \begin{itemize}
@@ -141,7 +154,7 @@
   \end{center}
 
   \begin{itemize}
-  \item starts with an ASCII identifier
+  \item starts with an ASCII \alert{identifier}
   \item a 32 bit message length follows
     \begin{itemize}
     \item this means you can't send a query that's larger than 1 GB
@@ -165,11 +178,10 @@
   \item there are several authentication types that can be demanded
     \begin{itemize}
     \item plain-text or MD5 password
-    \item it's up to the server to require plain text or encrypted
+    \item it's \alert{up to the server} to require plain text or encrypted
     \item GSSAPI, SSPI
     \end{itemize}
-  \item if the server can immediately confirm permissions, it sends
-    AuthenticationOK
+  \item if no auth is necessary, the server sends AuthenticationOK
   \end{itemize}
 \end{frame}
 
@@ -188,8 +200,8 @@
   \end{align*}
 
   \begin{itemize}
-  \item using a salt prevents replay attacks
-  \item double-hashing allows the server to only store hashes
+  \item using a salt prevents \alert{replay attacks}
+  \item double-hashing allows the server to only store \alert{hashes}
   \end{itemize}
 \end{frame}
 
@@ -204,9 +216,9 @@
   \item the server notifies clients about important parameters
   \item first batch of ParameterStatus messages is sent on startup
     \begin{itemize}
-    \item some of them are informative, like \texttt{server\_version}
-    \item others are critical for security, like \texttt{client\_encoding}
-    \item others yet are important for the client, like \texttt{DateStyle}
+    \item some of them are \alert{informative}, like \texttt{server\_version}
+    \item others are critical for \alert{security}, like \texttt{client\_encoding}
+    \item others yet are important for the \alert{client}, like \texttt{DateStyle}
     \end{itemize}
   \item when any of those parameters gets set, the server notifies the client
     on the next occasion
@@ -227,12 +239,11 @@
   \end{center}
 
   \begin{itemize}
-  \item the startup packet can use a dummy protocol version to ask for SSL
-    support
-  \item the server responds with with a status byte or an error message
+  \item the startup packet can use \alert{dummy protocol version} to ask for
+    SSL support
+  \item the server responds with with \alert{status byte} or an error message
   \item the client can reconnect or abort if the response is negative
   \end{itemize}
-
 \end{frame}
 
 \begin{frame}
@@ -249,13 +260,15 @@
   \end{center}
 
   \begin{itemize}
-  \item the cancel key is transmitted by the server upon connection
-  \item cancelling queries requires opening a separate connection
+  \item the \alert{cancel key} is transmitted by the server upon connection
+  \item cancelling queries requires opening \alert{separate connection}
   \item another dummy protocol version is sent to ask for cancellation
   \item the cancellation message includes the process ID and a 32 bit key
     \begin{itemize}
-    \item theoretically open to replay attacks, but can be sent over SSL
-    \item libpq does not, so most applications will transmit it in the open
+    \item theoretically open to \alert{replay attacks}, but can be sent over
+      SSL
+    \item libpq \alert{does not}, so most applications will transmit it in the
+      open
     \end{itemize}
   \end{itemize}
 \end{frame}
@@ -270,12 +283,11 @@
   \begin{itemize}
   \item the ErrorResponse message is sent for all kinds of errors
     \begin{itemize}
-    \item it's used both for authentication errors and client errors
+    \item both for authentication errors and client errors
     \end{itemize}
-  \item the message has variable length and is a list of key-value fields
+  \item it is a list of key-value fields
     \begin{itemize}
-    \item in protocol version 2.0 the error message was just a string
-    \item it's much more flexible now, providing structured information
+    \item in 2.0 it was just a string, in 3.0 it has structure
     \item example error fields are: message, detail, hint and error position
     \item detailed down to the source file and line, great for fingerprinting
     \end{itemize}
@@ -325,14 +337,12 @@
 
   \begin{itemize}
   \item every type has a text and binary representation
-  \item integers are sent in network byte order
-  \item depending on compile-time options, timestamps are either 64 bit
+  \item depending on \alert{compile-time options}, timestamps are either 64 bit
     integers or floating point values
     \begin{itemize}
     \item this is why \texttt{integer\_datetimes} is sent in ParameterStatus
     \end{itemize}
-  \item when executing a query, the client can choose if it wants text or
-    binary formatted data
+  \item the client can choose if they want text or binary data
   \item the exact format for each type doesn't seem to be documented anywhere
     \begin{itemize}
     \item but that's what C code is for :)
@@ -345,12 +355,10 @@
 
   \begin{itemize}
   \item client sends an SQL command
-  \item server replies with a RowDescription message detailing the returned
-    tuples structure
+  \item server replies with RowDescription detailing the structure
     \begin{itemize}
     \item each column has a name
-    \item for all columns, the type OID is provided, along with the type's
-      length and modifier, like char(16)
+    \item the type OID, length and modifier (like \texttt{char(16)})
     \item each column is marked as containing binary or text output
     \end{itemize}
   \item after that a DataRow message is sent for every row
@@ -398,7 +406,7 @@
   \frametitle{Detecting transaction status}
 
   \begin{itemize}
-  \item the ReadyForQuery message includes transaction status
+  \item the ReadyForQuery message includes \alert{transaction status}
   \item this is useful for things like psql's prompt or, more importantly,
     pgbouncer
   \item the transaction status only got included in protocol 3.0
@@ -421,15 +429,14 @@
   \frametitle{Simple query protocol cont.}
 
   \begin{itemize}
-  \item several commands can be sent in one query string
+  \item \alert{several commands} can be sent in one query string
     \begin{itemize}
     \item the server sends one CommandComplete per query
-    \item in case of errors it's up to the client to figure out which of the
-      queries failed
+    \item in case of errors it's up to the client to figure out which one failed
     \end{itemize}
   \item sending an empty string yields a special EmptyQueryResponse instead of
     CommandComplete
-  \item the simple protocol always returns text data, except for binary cursors
+  \item the simple protocol \alert{always} returns text data, except for binary cursors
   \end{itemize}
 \end{frame}
 
@@ -445,9 +452,9 @@
   \setbeamercolor{sqlinjection}{bg=block title.bg}
 
   \begin{itemize}
-  \item query execution is split into separate steps
+  \item query execution is split into \alert{separate steps}
   \item each step is confirmed by a separately server message, but they can be
-    sent consecutively without waiting
+    sent \alert{consecutively} without waiting
   \item allows separating parameters from the query body
   \end{itemize}
   \begin{beamercolorbox}[center,sep=1em]{sqlinjection}
@@ -468,13 +475,13 @@
 
   \begin{beamercolorbox}[center,sep=1em]{sqlinjection}
     \only<1-2>{
-      \texttt{SELECT * FROM posts WHERE post\_id = \alert{\$var}}
+      \texttt{SELECT * FROM posts WHERE id = \alert{\$var}}
     }
     \only<3>{
-      \texttt{SELECT * FROM posts WHERE post\_id = \alert{1; delete from posts; --}'}
+      \texttt{SELECT * FROM posts WHERE id = \alert{1; delete from posts;}}
     }
     \only<4->{
-      \texttt{SELECT * FROM posts WHERE post\_id = \alert{\$1}}
+      \texttt{SELECT * FROM posts WHERE id = \alert{\$1}}
     }
   \end{beamercolorbox}
 \end{frame}
@@ -488,12 +495,13 @@
 
   \begin{itemize}
   \item first, the client sends a Parse message with the query string
-  \item it can contain placeholders (\texttt{\$1, \$2, ...}) for parameters
-  \item for each parameter you can specify its type
+  \item it can contain \alert{placeholders} (\texttt{\$1, \$2, ...}) for
+    parameters
+  \item for each parameter you can specify its \alert{type}
     \begin{itemize}
     \item disambiguate between \texttt{select foo(1)} and \texttt{select foo('x')}
     \end{itemize}
-  \item the statement can be optionally given a name
+  \item the statement can be optionally given a \alert{name}
     \begin{itemize}
     \item unnamed statements live until the next unnamed statement is parsed
     \item named statements need to be explicitly deallocated
@@ -510,13 +518,14 @@
   \hspace{2cm}\includegraphics[height=0.6cm]{bind-4}
 
   \begin{itemize}
-  \item after the query is parsed, the clients binds its parameters
-  \item the statement name from Parse and an output portal name are given
+  \item after the query is parsed, the clients \alert{binds} its parameters
+  \item an \alert{output portal} is created for a previously parsed statement
     \begin{itemize}
-    \item en empty string can be used for the portal name
+    \item an empty string can be used for the portal name
     \end{itemize}
-  \item for each parameter, its format (binary or text) and value are specified
-  \item finally, for each output column, the requested output format is sent
+  \item for each parameter, its \alert{format} (binary or text) and \alert{value} are specified
+  \item finally, for each output column, the requested \alert{output format} is
+    sent
   \end{itemize}
 \end{frame}
 
@@ -534,9 +543,9 @@
 
   \begin{itemize}
   \item clients can ask for a description of a statement or a portal
-  \item statement descriptions are returned as two separate messages:
+  \item \alert{statement} descriptions are returned as two separate messages:
     ParameterDescription and RowDescription
-  \item portal descriptions are just RowDescriptions
+  \item \alert{portal} descriptions are just RowDescriptions
   \item clients can use Describe to make sure they know how to handle data
     being returned
   \end{itemize}
@@ -550,9 +559,9 @@
   \end{center}
 
   \begin{itemize}
-  \item once the output portal is created, an Execute can be sent
+  \item once the output portal is created, it can be \alert{executed}
   \item the output portal is referred to by name
-  \item the number of rows to return, or 0 for all rows
+  \item can specify the \alert{number of rows} to return, or 0 for all rows
   \item a series of DataRow messages follow
   \item no RowDescription is sent
   \end{itemize}
@@ -562,8 +571,9 @@
   \frametitle{Execute messages cont.}
 
   \begin{itemize}
-  \item after the portal has been run to completion, CommandComplete is sent,
-  \item if the requested number of rows is less than what the portal would
+  \item after the portal has been \alert{run to completion}, CommandComplete is
+    sent
+  \item if the requested number of rows is \alert{less} than what the portal would
     return a PortalSuspended message is sent
   \item AFAIK, only JDBC actually exposes limits for Execute
   \item libpq doesn't even have code to handle PortalSuspended...
@@ -578,7 +588,7 @@
   \end{center}
 
   \begin{itemize}
-  \item every extended protocol query has to end with a Sync
+  \item an extended protocol query should end with a Sync
   \item upon receiving Sync the server responds with a ReadyForQuery message
   \item in case of errors, the server sends an ErrorResponse and then skips
     until it sees a Sync
@@ -589,10 +599,11 @@
   \frametitle{Extended query protocol summary}
 
   \begin{itemize}
-  \item queries are parsed at Parse stage
-  \item queries are planned at Bind stage
-  \item queries are executed at Execute stage
-  \item with statement logging, these three steps will be logged separately
+  \item queries are \alert{parsed} at Parse stage
+  \item queries are \alert{planned} at Bind stage
+  \item queries are \alert{executed} at Execute stage
+  \item with statement logging, these three steps will be \alert{timed} and
+    \alert{logged separately}
   \end{itemize}
 \end{frame}
 
@@ -650,12 +661,12 @@
   \end{center}
 
   \begin{itemize}
-  \item CopyData messages are simply binary blobs
+  \item CopyData messages are simply \alert{binary blobs}
   \item to stop \texttt{COPY FROM}, the client can send a CopyFail message
   \item when transfer is complete, the client sends CopyDone
   \item in case of backend errors, an ErrorResponse is sent
   \item there is no way for the frontend to stop a \texttt{COPY TO} operation,
-    short of cancelling
+    short of cancelling or disconnecting
   \end{itemize}
 \end{frame}
 
@@ -674,7 +685,7 @@
   \end{center}
 
   \begin{itemize}
-  \item some messages can appear at any moment during the connection
+  \item some messages can appear at \alert{any moment} during the connection
     \begin{itemize}
     \item ParameterStatus
     \item NoticeResponse
@@ -694,15 +705,14 @@
   \hspace{1cm}\includegraphics[height=0.6cm]{function-call-3}
 
   \begin{itemize}
-  \item a specialised interface for calling functions
+  \item a specialised interface for \alert{calling functions}
   \item separate protocol message, FunctionCall, similar to Query
     \begin{itemize}
     \item the function is identified by its OID
     \item arguments format and values are specified similar to Bind
     \end{itemize}
-  \item libpq documentation calls it ``somewhat obsolete'' :)
-  \item similar effect can be achieved by creating a named statement with Parse
-    and using Bind/Execute
+  \item libpq documentation calls it ``\alert{somewhat obsolete}'' :)
+  \item can be substituted by a named Parse followed by Bind/Execute
   \item still used by libpq for large object functions
   \end{itemize}
 \end{frame}
@@ -727,16 +737,15 @@
 \begin{frame}
   \frametitle{Protocol version 4.0}
 
-  There are surprisingly few gripes about protocol 3.0, but some proposals have
-  been floated on the development list.
+  There are \alert{surprisingly few} gripes about protocol 3.0, but some
+  proposals have been floated on the development list.
 
   \begin{itemize}
   \item protocol compression
   \item adding nullable indicator to RowDescription
   \item multi-stage authentication, allowing falling back to a different
     authentication method
-  \item negotiating the protocol instead of the server just rejecting older
-    clients
+  \item negotiating the protocol version
   \item in-band query cancellation
   \item sending per-statement GUC
   \end{itemize}

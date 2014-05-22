@@ -3,5 +3,5 @@ graph AuthenticationRequest {
       labelloc=t;
       labeljust=l;
       node [shape=record];
-      struct1 [label="'R'|int32 len|int32 method|other?"];
+      struct1 [label="'R'|int32 len|int32 method|optional other"];
 }
