@@ -1,0 +1,7 @@
+graph CopyInResponse {
+      label="CopyInResponse";
+      labelloc=t;
+      labeljust=l;
+      node [shape=record];
+      struct1 [label="'G'|int32 len|int8 format|int16 numfields|int16 format|..."];
+}

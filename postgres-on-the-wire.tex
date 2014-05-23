@@ -97,7 +97,7 @@
   new process to deal with them.
 
   \begin{itemize}
-  \item any \alert{protocol bugs} won't affect the postmaster
+  \item any \alert{parsing issues} won't affect the postmaster
   \item authentication is done \alert{after} a process is forked
   \item closing the connection results in \alert{terminating} the backend
     \begin{itemize}
@@ -140,7 +140,7 @@
   \item in protocol 2.0 it had a fixed length, in 3.0 it's variable length
   \item what follows is a list of key/value pairs denoting options
     \begin{itemize}
-    \item some keys, like \texttt{database} or \texttt{options} are special
+    \item some keys, like \texttt{user}, \texttt{database} or \texttt{options} are special
     \item the rest are generic GUC options
     \end{itemize}
   \end{itemize}
@@ -196,7 +196,7 @@
 
   \begin{align*}
     pwdhash\;&=\;md5(password\;+\;username).hexdigest() \\
-    hash\;&=\;'md5'\;+\;md5(pwdhash\;+\;salt).hexdigext()
+    hash\;&=\;'md5'\;+\;md5(pwdhash\;+\;salt).hexdigest()
   \end{align*}
 
   \begin{itemize}
@@ -239,7 +239,7 @@
   \end{center}
 
   \begin{itemize}
-  \item the startup packet can use \alert{dummy protocol version} to ask for
+  \item the startup packet can use a \alert{dummy protocol version} to ask for
     SSL support
   \item the server responds with with \alert{status byte} or an error message
   \item the client can reconnect or abort if the response is negative
@@ -589,9 +589,10 @@
 
   \begin{itemize}
   \item an extended protocol query should end with a Sync
-  \item upon receiving Sync the server responds with a ReadyForQuery message
-  \item in case of errors, the server sends an ErrorResponse and then skips
-    until it sees a Sync
+  \item upon receiving Sync the server \alert{closes the transaction} if it was
+    implicit and responds with a ReadyForQuery message
+  \item in case of earlier errors, the server sends an ErrorResponse and then
+    skips until it sees a Sync
   \end{itemize}
 \end{frame}
 
@@ -638,6 +639,10 @@
 
 \begin{frame}
   \frametitle{Entering COPY mode}
+
+  \begin{center}
+    \includegraphics[height=1cm]{copy-in}
+  \end{center}
 
   \begin{itemize}
   \item sending \texttt{COPY FROM STDIN} or \texttt{COPY TO STDIN} puts the
@@ -691,8 +696,8 @@
     \item NoticeResponse
     \item NotificationResponse
     \end{itemize}
-  \item NOTIFY messages are only sent when a transaction is committed, but have
-    to expect then at any time
+  \item NOTIFY messages are only sent when a transaction is committed, but you
+    should expect them at any time
   \item notices can be sent at any moment
   \end{itemize}
 \end{frame}

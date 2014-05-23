@@ -5,7 +5,7 @@ msc {
 
     a=>>b [label="Query - 'COPY tab FROM STDIN'\n\n"];
 
-    a<<=b [label="CopyIn\n\n"];
+    a<<=b [label="CopyInResponse\n\n"];
 
     |||;
 
